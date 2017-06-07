@@ -1,0 +1,41 @@
+:root {
+    --darkest: #222;
+    --shade1: #999;
+    --shade2: #aaa;
+
+    --lightest: #f8f8f8;
+}
+
+body {
+    font-family: "Roboto Mono", monospace;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: var(--lightest);
+}
+
+header {
+    background-color: var(--shade1);
+}
+
+a{
+    text-decoration: none;
+    color: var(--darkest);
+}
+
+h1 {
+    margin: 0;
+    padding: 1em 0 0 .2em;
+    color: var(--shade2);
+}
+h2 {
+    font-weight: normal;
+}
+
+.nav-link {
+    float: left;
+    margin-left: 40px;
+}
+
+.nav-link + .nav-link {
+
+}

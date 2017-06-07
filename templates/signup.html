@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>/signup</h2>
+    <form method="post">
+        <table>
+            <tr>
+                <td>
+                    Username:
+                </td>
+                <td>
+                    <input type="text" name="username" size="15" style="display:inline;" value={% if username: %}{{username}}{% else: %}""{% endif %} />
+                </td>
+                <td class="error">
+                    {% if username == False and username is defined: %}
+                        That's not a valid username.
+                    {% else: %}
+                        {{error}}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Password:
+                </td>
+                <td>
+                    <input type="password" name="password" size="15" style="display:inline;" value={% if password: %}{{password}}{% else: %}""{% endif %} />
+                </td>
+                <td class="error">
+                    {% if password == False and password is defined: %}
+                        That's not a valid password.
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Verify Password:
+                </td>
+                <td>
+                    <input type="password" name="verify" style="display:inline;" size="15" value={% if verify: %}{{verify}}{% else: %}""{% endif %} />
+                </td>
+                <td>
+                    {% if verify == False and verify is defined: %}
+                        Your passwords did not match.
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Email (optional):
+                </td>
+                <td>
+                    <input type"text" name="email" size="15" style="display:inline;" value={% if email: %}{{email}}{% else: %}""{% endif %} />
+                </td>
+                <td>
+                    {% if email == False and email is defined: %}
+                        That's not a valid email.
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+        <input type="submit"/>
+    </form>
+{% endblock %}

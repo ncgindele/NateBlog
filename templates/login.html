@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>/login</h2>
+    <form method="post">
+        <table>
+            <tr>
+                <td>
+                    Username:
+                </td>
+                <td>
+                    <input type="text" name="username" size="15" style="display:inline;" value={% if username: %}{{username}}{% else: %}""{% endif %} />
+                </td>
+                <td class="error">
+                    {% if u_error: %}
+                        {{u_error}}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Password:
+                </td>
+                <td>
+                    <input type="password" name="password" size="15" style="display:inline;" value={% if password: %}{{password}}{% else: %}""{% endif %} />
+                </td>
+                <td class="error">
+                    {% if p_error: %}
+                        {{p_error}}
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+        <input type="submit"/>
+    </form>
+{% endblock %}
