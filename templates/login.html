@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>/login</h2>
+    <h2>self.login()</h2>
     <form method="post">
-        <table>
+        <table class="center">
             <tr>
                 <td>
                     Username:
@@ -28,8 +28,9 @@
                         {{p_error}}
                     {% endif %}
                 </td>
-            </tr>
         </table>
-        <input type="submit"/>
+        <div class="text-center">
+            <input class="submit-button center" type="submit"/>
+        </div>
     </form>
 {% endblock %}

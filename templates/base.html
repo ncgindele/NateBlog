@@ -5,15 +5,23 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>NateBlog</title>
-        <link href="https://fonts.googleapis.com/css?family=Roboto|Roboto+Mono" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Mono|EB+Garamond" rel="stylesheet">
     </head>
     <body>
+        <a href="/blog">
         <header>
-            <a href="/blog"><h1>NateBlog</h1></a>
+            <h1>NateBlog</h1>
+            <div class="welcome-message">
+                {% if welcome: %}
+                {{welcome}}
+                {% endif %}
+            </div>
         </header>
+        </a>
         <a href="/blog/signup" class='nav-link'>signup</a>
         <a href="/blog/login" class='nav-link'>login</a>
-        <a href="/blog/newpost" class='nav-link'>newpost</a>
+        <a href="/blog/newpost" class='nav-link'>post</a>
+        <br>
     {% block content %}
 
     {% endblock %}

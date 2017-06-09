@@ -1,20 +1,23 @@
 :root {
     --darkest: #222;
+    --shade0: #555;
     --shade1: #999;
     --shade2: #aaa;
-
+    --shade3: #bbb;
     --lightest: #f8f8f8;
 }
 
 body {
     font-family: "Roboto Mono", monospace;
     max-width: 800px;
+    min-width: 310px;
     margin: 0 auto;
     background-color: var(--lightest);
 }
 
 header {
     background-color: var(--shade1);
+    width: 100%;
 }
 
 a{
@@ -25,17 +28,86 @@ a{
 h1 {
     margin: 0;
     padding: 1em 0 0 .2em;
-    color: var(--shade2);
+    display: inline-block;
+    color: var(--shade3);
 }
+
 h2 {
     font-weight: normal;
+    margin-left: .5em;
+    font-size: 2em;
+}
+
+h3 {
+    font-size: 1.8em;
+    font-weight: normal;
+    margin-bottom: 4px;
+    color: var(--shade0)
+}
+
+h5,
+h6 {
+    font-weight: normal
+}
+
+.author {
+    margin: 0 0 4px 0;
+    color: var(--shade1)
+}
+
+.post-date {
+    margin-top: 6px;
+    margin-bottom: 8px;
+    color: var(--darkest)
+}
+
+.center {
+    margin: 0 auto;
+}
+
+.text-center {
+    text-align: center;
 }
 
 .nav-link {
     float: left;
     margin-left: 40px;
+    margin-top: .25em;
+    background-color: var(--shade3);
+    padding: .1em .3em .1em .3em;
 }
 
-.nav-link + .nav-link {
+.welcome-message {
+    float: right;
+    color: black;
+    padding: 2.5em 1em 0 .25em;
+}
 
+.post-content {
+    background-color: white;
+    border: solid 1px var(--shade3);
+    padding: 1em 1.25em 1em 1.25em;
+    font-family: "EB Garamond", serif;
+    font-size: 20px;
+}
+
+.create-post {
+    width: 100%;
+    margin: 0 auto;
+    font-size: 20px;
+}
+
+.content-box {
+    height : 400px;
+    font-family: "EB Garamond", serif;
+}
+
+input[type=submit] {
+    background-color: var(--shade1);
+    color: var(--lightest);
+    border: none;
+    padding: .25em 1.5em .25em 1.5em;
+    font-size: 1em;
+    margin-top: 1.15em;
+    border-radius: 3px;
 }

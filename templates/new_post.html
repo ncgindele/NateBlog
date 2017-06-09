@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>self.create_post()</h2>
+<div class="center">
+    <form method=post>
+        <label>
+            <div>
+                Title
+            </div>
+            <input class="create-post" type="text" name="subject" value="{{subject}}"></input>
+        </label>
+        <label class="content-label">
+            <div>
+                Text
+            </div>
+            <textarea class="create-post content-box" name="content" value="{{content}}"></textarea>
+        </label>
+        <div class="error">
+            {{error}}
+        </div>
+        <div class="text-center">
+            <input type=submit />
+        </div>
+    </form>
+</div>
+{% endblock %}
