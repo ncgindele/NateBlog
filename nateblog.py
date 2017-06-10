@@ -7,6 +7,7 @@ import re
 import logging
 import jinja2
 import webapp2
+import time
 from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -32,6 +33,9 @@ def users_key(group='default'):
     #from HW solutions
     return db.Key.from_path('users', group)
 
+def comments_key(group='default'):
+    return db.Key.from_path('comments', group)
+
 class UserAccount(db.Model):
     username = db.StringProperty(required = True)
     pw_hash_s = db.StringProperty(required = True)
@@ -40,7 +44,7 @@ class UserAccount(db.Model):
     @classmethod
     def by_id(cls, user_id):
         #from 8.4
-        return UserAccount.get_by_id(user_id, parent = users_key())
+        return UserAccount.get_by_id(user_id)
 
     @classmethod
     def get_by_username(cls, username):
@@ -52,7 +56,7 @@ class UserAccount(db.Model):
     def register(cls, username, password, email = None):
         #from 8.4
         pw_hash_s = make_pw_hash_s(username, password)
-        return UserAccount(parent = users_key(), username=username, pw_hash_s=pw_hash_s, email=email)
+        return UserAccount(username=username, pw_hash_s=pw_hash_s, email=email)
 
 class Post(db.Model):
     subject = db.StringProperty(required = True)
@@ -63,9 +67,23 @@ class Post(db.Model):
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>') #l6.2
-        return self.render_str("blog_item.html", post = self)
+        return self.render_str('blog_item.html', post = self)
 
     def render_str(self, template, **params):#from HW solutions
+        t = jinja_env.get_template(template)
+        return t.render(params)
+
+class Comment(db.Model):
+    author = db.StringProperty(required = True)
+    content = db.TextProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+    post_id = db.StringProperty(required = True)
+
+    def render(self):
+        self._render_text = self.content.replace('\n', '<br>')
+        return self.render_str('comment_item.html', comment = self)
+
+    def render_str(self, template, **params):
         t = jinja_env.get_template(template)
         return t.render(params)
 
@@ -81,6 +99,10 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
+    def render_blog(self, msg=None):
+        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10") #retrieve 10 most recent
+        self.render("blog_main_page.html", posts=posts, msg=msg)
+
 class CookieEnabled(Handler):
     def login(self, user):
         self.make_cookie(user)
@@ -95,10 +117,10 @@ class CookieEnabled(Handler):
 
     def verify_cookie(self):
         val_hash = self.request.cookies.get('user_creds')
-        if self.verify_val_hash(val_hash):
-            return val_hash.split('|')[0]
-        else:
+        if not (val_hash and self.verify_val_hash(val_hash)):
             return False
+        else:
+            return val_hash.split('|')[0]
 
     def make_val_hash(self, value):
         val_hash = '%s|%s' % (value, hmac.new(SHH_SECRET, value).hexdigest())
@@ -140,31 +162,53 @@ class CookieEnabled(Handler):
             return ('', 'Error: invalid username')
 
     def name_not_taken(self, username):
-            user = UserAccount.get_by_username(username)
-            if user:
+        username = username.lower()
+        users = UserAccount.all()
+        for user in users:
+            if user.username.lower() == username:
                 return False
-            else:
-                return True
+        return True
 
 class LoginRequired(CookieEnabled):
     def initialize(self, *a, **kw):
         webapp2.RequestHandler.initialize(self, *a, **kw)
         user_id = self.verify_cookie()
         if not user_id:
-            self.redirect('/login')
+            self.redirect('/blog/login?u_error=login')
         else:
             self.user = UserAccount.by_id(int(user_id))
-            logging.info('Got user' + self.user.username)
+            logging.info("initialize: " + self.user.username)
+
+class RedirectToBlog(Handler):
+    def get(self):
+        self.redirect('/blog')
 
 class BlogMainPage(Handler):
-    def render_blog(self):
-        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10") #retrieve 10 most recent
-        self.render("blog_main_page.html", posts=posts)
-
     def get(self):
         self.render_blog()
 
-class PostsBy(Handler): pass
+class PostsBy(Handler):
+    def get(self):
+        author = self.request.get('p')
+        posts = Post.all()
+        posts.filter('author =', author).order('-created')
+        if not posts.get():
+            self.render('blog_main_page.html', posts=posts, msg='No posts found for %s' % author)
+        else:
+            self.render('posts_by.html', posts=posts, author=author)
+
+class PermLink(Handler):
+    def render_item(self, post_id):
+        key = db.Key.from_path('Post', int(post_id))
+        post = db.get(key)
+        if post:
+            self.render("permanent_link.html", post=post)
+        else:
+            self.error(404)
+            return
+
+    def get(self, post_id):
+        self.render_item(post_id)
 
 class Signup(CookieEnabled):
     def get(self):
@@ -178,10 +222,8 @@ class Signup(CookieEnabled):
         email = self.verify_email(self.request.get('email'))
         if type(username) is tuple:
             self.render('signup.html', username='', password=password, verify=verify, email=email, u_error=username[1])
-        elif type(password) is tuple:
-            self.render('signup.html', username=username, password='', verify=verify, p_error=password[1])
         elif not(verify and password and username and not (email is False)):
-            self.render('signup.html', username=username, password=password, verify=verify, email=email)
+            self.render('signup.html', username=username, password=password, verify=verify, email=email, u_error='')
         else:
             u = UserAccount.register(username, password, email)
             u.put()
@@ -191,7 +233,10 @@ class Signup(CookieEnabled):
 
 class Login(CookieEnabled):
     def get(self):
-        self.render('login.html')
+        if self.request.get('u_error'):
+            self.render('login.html', u_error='Must be logged in to post')
+        else:
+            self.render('login.html')
 
     def post(self):
         username = self.request.get('username')
@@ -217,7 +262,7 @@ class Login(CookieEnabled):
 class WelcomePage(LoginRequired):
     def get(self):
         posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
-        self.render('blog_main_page.html', posts=posts, welcome='Welcome, %s!' % self.user.username)
+        self.render('blog_main_page.html', posts=posts, msg='Welcome, %s!' % self.user.username)
 
 class NewPost(LoginRequired):
     def get(self):
@@ -229,29 +274,59 @@ class NewPost(LoginRequired):
         if subject and content:
             p = Post(subject=subject, content=content, author=self.user.username)
             p.put() #stores object in db
-            self.redirect("/blog/" + str(p.key().id()))
+            time.sleep(1)
+            self.render_blog(msg='Successful post to NateBlog')
+            #self.redirect("/blog/" + str(p.key().id()))
         else:
             error = "Must enter title and text"
             self.render('new_post.html', subject=subject, content=content, error=error)
 
-class PermLink(Handler):
-    def render_item(self, post_id):
+class CommentPage(Handler):
+    def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id))
         post = db.get(key)
-        if post:
-            self.render("permanent_link.html", post=post)
-        else:
+        if not post:
             self.error(404)
             return
+        else:
+            q = db.Query(Comment)
+            comments = q.filter('post_id =', post_id)
+            comments = comments.order('-created').fetch(limit=20)
+            if len(comments) == 0:
+                comments = None
+            self.render('view_comments.html', post=post, comments=comments)
 
+
+class PostComment(LoginRequired):
     def get(self, post_id):
-        self.render_item(post_id)
+        key = db.Key.from_path('Post', int(post_id))
+        post = db.get(key)
+        if not post:
+            self.error(404)
+            return
+        else:
+            if self.request.get('error') == 1:
+                error = 'Comment is empty'
+            else:
+                error = None
+            self.render('post_comment.html', post=post, error=error)
 
+    def post(self, post_id):
+        content = self.request.get('content')
+        if not content:
+            self.redirect('/blog/postcomment/%s?error=1' % post_id)
+        c = Comment(author=self.user.username, content=content, post_id=post_id)
+        c.put()
+        time.sleep(1)
+        self.render_blog(msg='Comment Added')
 
-app = webapp2.WSGIApplication([('/blog', BlogMainPage),
+app = webapp2.WSGIApplication([('/', RedirectToBlog),
+                                ('/blog', BlogMainPage),
                                 ('/blog/signup', Signup),
                                 ('/blog/login', Login),
                                 ('/blog/welcome', WelcomePage),
                                 ('/blog/newpost', NewPost),
                                 ('/blog/postsby', PostsBy),
-                                ('/blog/(\d+)', PermLink)], debug=True)
+                                ('/blog/(\d+)', PermLink),
+                                ('/blog/comments/(\d+)', CommentPage),
+                                ('/blog/postcomment/(\d+)', PostComment)], debug=True)

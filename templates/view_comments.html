@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+    {{ post.render() | safe }}
+    <br>
+    <br> <a name="comment"></a>
+    {% if not comments: %}
+        <div class="text-center">
+            No comments yet. Check back later, or post your own!
+        </div>
+    {% else: %}
+        {% for comment in comments: %}
+            {{ comment.render() | safe }}
+        {% endfor %}
+    {% endif %}
+{% endblock %}

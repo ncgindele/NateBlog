@@ -8,19 +8,17 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto+Mono|EB+Garamond" rel="stylesheet">
     </head>
     <body>
-        <a href="/blog">
+        <a href="/blog" id="a-header">
         <header>
             <h1>NateBlog</h1>
-            <div class="welcome-message">
-                {% if welcome: %}
-                {{welcome}}
+            <div class="msg">
+                {% if msg: %}
+                {{msg}}
                 {% endif %}
             </div>
         </header>
         </a>
-        <a href="/blog/signup" class='nav-link'>signup</a>
-        <a href="/blog/login" class='nav-link'>login</a>
-        <a href="/blog/newpost" class='nav-link'>post</a>
+        <div class="block left-block"></div><a href="/blog/signup" class='nav-link upper-nav'>signup</a><div class="block inner-block"></div><a href="/blog/login" class='nav-link upper-nav'>login</a><div class="block inner-block"></div><a href="/blog/newpost" class='nav-link upper-nav'>post</a>
         <br>
     {% block content %}
 

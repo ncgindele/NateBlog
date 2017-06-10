@@ -14,7 +14,7 @@
                     {% if username == False and username is defined: %}
                         That's not a valid username.
                     {% else: %}
-                        {{error}}
+                        {{u_error}}
                     {% endif %}
                 </td>
             </tr>
@@ -49,7 +49,7 @@
                     Email (optional):
                 </td>
                 <td>
-                    <input type"text" name="email" size="15" style="display:inline;" value={% if email: %}{{email}}{% else: %}""{% endif %} />
+                    <input type="text" name="email" size="15" style="display:inline;" value={% if email: %}{{email}}{% else: %}""{% endif %} />
                 </td>
                 <td>
                     {% if email == False and email is defined: %}

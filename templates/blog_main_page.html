@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<h2>blog main(posts)</h2>
     {% if posts: %}
         {% for post in posts %}
             {{ post.render() | safe }}

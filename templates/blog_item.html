@@ -2,11 +2,16 @@
 <div class="post">
     <div class="post-heading text-center">
         <h3>{{post.subject}}</h3>
-        <h5 class="author">by <b>{{post.author}}</b></h5>
+        <a href="/blog/postsby?p={{post.author}}"><h5 class="author">by <b>{{post.author}}</b></h5></a>
         <h6 class="post-date">{{post.created.strftime("%b %d, %Y")}}</h6>
     </div>
-    <div class="post-content">
+    <section class="post-content">
         {{post._render_text | safe}}
+    </section>
+    <div class="text-center">
+        <a href="/blog/comments/{{post.key().id()|string}}#comment" class="nav-link">View Comments</a>
+        <a href="/blog/postsby?p={{post.author}}" class="nav-link">All Posts by <b>{{post.author}}</b></a>
+        <a href="/blog/postcomment/{{post.key().id()|string}}" class="nav-link">Post Comment</a>
     </div>
 </div>
 {% endblock %}
