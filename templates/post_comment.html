@@ -4,6 +4,7 @@
     {{ post.render() | safe }}
     <div class="full-width center">
         <form method=post>
+            <a name="comment"></a>
             <label>Comment</label>
             <textarea class="create-post" name="content" size=90 value="{{content}}"></textarea>
             {% if error: %}

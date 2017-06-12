@@ -11,8 +11,8 @@ indexes:
 # your application using appcfg.py.
 
 - kind: Comment
+  ancestor: yes
   properties:
-  - name: post_id
   - name: created
     direction: desc
 

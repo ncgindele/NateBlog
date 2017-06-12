@@ -24,10 +24,12 @@ header {
     color: var(--shade3);
 }
 
-header:hover {
-    color: var(--accent1);
+header > h1 {
     -webkit-transition: color 0.5s;
     transition: color 0.5s;
+}
+header:hover {
+    color: var(--accent1);
 }
 
 a{
@@ -110,18 +112,21 @@ textarea:focus {
 }
 
 .nav-link {
-    margin-left: 40px;
     margin-top: .25em;
     background-color: var(--shade3);
     padding: .1em .6em .1em .6em;
     display: inline-block;
+    -webkit-transition: background-color 0.5s;
+    transition: background-color 0.5s;
+}
+
+.nav-link + .nav-link {
+    margin-left: 40px;
 }
 
 .nav-link:hover {
     background-color: var(--accent1);
     color: var(--shade4);
-    -webkit-transition: background-color 0.5s;
-    transition: background-color 0.5s;
 }
 
 .nav-link:focus {

@@ -8,7 +8,8 @@ import logging
 import jinja2
 import webapp2
 import time
-from google.appengine.ext import db
+import urllib
+from google.appengine.ext import ndb
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
@@ -29,17 +30,10 @@ def make_pw_hash_s(username, password, salt=0):
     h = hashlib.sha256(username + password + salt).hexdigest()
     return '%s|%s' % (h, salt)
 
-def users_key(group='default'):
-    #from HW solutions
-    return db.Key.from_path('users', group)
-
-def comments_key(group='default'):
-    return db.Key.from_path('comments', group)
-
-class UserAccount(db.Model):
-    username = db.StringProperty(required = True)
-    pw_hash_s = db.StringProperty(required = True)
-    email = db.StringProperty()
+class UserAccount(ndb.Model):
+    username = ndb.StringProperty(required = True)
+    pw_hash_s = ndb.StringProperty(required = True)
+    email = ndb.StringProperty()
 
     @classmethod
     def by_id(cls, user_id):
@@ -49,7 +43,7 @@ class UserAccount(db.Model):
     @classmethod
     def get_by_username(cls, username):
         #from 8.4
-        u = UserAccount.all().filter('username =', username).get()
+        u = UserAccount.query().filter(UserAccount.username == username).get()
         return u
 
     @classmethod
@@ -58,26 +52,32 @@ class UserAccount(db.Model):
         pw_hash_s = make_pw_hash_s(username, password)
         return UserAccount(username=username, pw_hash_s=pw_hash_s, email=email)
 
-class Post(db.Model):
-    subject = db.StringProperty(required = True)
-    content = db.TextProperty(required = True)
-    created = db.DateTimeProperty(auto_now_add = True)
-    author = db.StringProperty(required = True)
-    last_modified = db.DateTimeProperty(auto_now = True)
+class Post(ndb.Model):
+    subject = ndb.StringProperty(required = True)
+    content = ndb.TextProperty(required = True)
+    created = ndb.DateTimeProperty(auto_now_add = True)
+    author = ndb.StringProperty(required = True)
+    last_modified = ndb.DateTimeProperty(auto_now = True)
+    num_comments = ndb.IntegerProperty(required = True, default = 0)
+    upvotes = ndb.IntegerProperty(required = True, default = 0)
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>') #l6.2
         return self.render_str('blog_item.html', post = self)
 
+    def my_render(self):
+        self._render_text = self.content.replace('\n', '<br>')
+        return self.render_str('my_blog_item.html', post = self)
+
     def render_str(self, template, **params):#from HW solutions
         t = jinja_env.get_template(template)
         return t.render(params)
 
-class Comment(db.Model):
-    author = db.StringProperty(required = True)
-    content = db.TextProperty(required = True)
-    created = db.DateTimeProperty(auto_now_add = True)
-    post_id = db.StringProperty(required = True)
+class Comment(ndb.Model):
+    author = ndb.StringProperty(required = True)
+    content = ndb.TextProperty(required = True)
+    created = ndb.DateTimeProperty(auto_now_add = True)
+    last_modified = ndb.DateTimeProperty(auto_now = True)
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
@@ -100,8 +100,13 @@ class Handler(webapp2.RequestHandler):
         self.write(self.render_str(template, **kw))
 
     def render_blog(self, msg=None):
-        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10") #retrieve 10 most recent
+        posts = posts = Post.query().order(-Post.created).fetch(10)
         self.render("blog_main_page.html", posts=posts, msg=msg)
+
+    def get_from_url(self, url_string):
+        key = ndb.Key(urlsafe=url_string)
+        entity = key.get()
+        return entity
 
 class CookieEnabled(Handler):
     def login(self, user):
@@ -112,7 +117,7 @@ class CookieEnabled(Handler):
         self.redirect('/blog')
 
     def make_cookie(self, user):
-        user_creds = self.make_val_hash(str(user.key().id()))
+        user_creds = self.make_val_hash(str(user.key.id()))
         self.response.headers.add_header('Set-Cookie', 'user_creds=%s Path=/' % (user_creds))
 
     def verify_cookie(self):
@@ -163,7 +168,7 @@ class CookieEnabled(Handler):
 
     def name_not_taken(self, username):
         username = username.lower()
-        users = UserAccount.all()
+        users = UserAccount.query()
         for user in users:
             if user.username.lower() == username:
                 return False
@@ -190,17 +195,64 @@ class BlogMainPage(Handler):
 class PostsBy(Handler):
     def get(self):
         author = self.request.get('p')
-        posts = Post.all()
-        posts.filter('author =', author).order('-created')
-        if not posts.get():
+        posts = Post.query(Post.author == author).order(-Post.created).fetch(20)
+        if len(posts) == 0:
             self.render('blog_main_page.html', posts=posts, msg='No posts found for %s' % author)
         else:
             self.render('posts_by.html', posts=posts, author=author)
 
+class MyPosts(LoginRequired):
+    def get(self):
+        posts = Post.query(Post.author == self.user.username).order(-Post.created).fetch(20)
+        self.render('my_posts.html', posts=posts, username = self.user.username)
+
+class EditPost(LoginRequired):
+    def get(self, url_string):
+        post = self.get_from_url(url_string)
+        if not post:
+            self.error(404)
+            return
+        else:
+            self.render('edit_post.html', subject=post.subject, content=post.content)
+
+    def post(self, url_string):
+        subject = self.request.get('subject')
+        content = self.request.get('content')
+        if subject and content:
+            post = self.get_from_url(url_string)
+            post.subject = subject
+            post.content = content
+            post.put()
+            time.sleep(1)
+            self.render_blog(msg='Successful edit to "%s"' % post.subject)
+        elif not subject:
+            self.render('edit_post.html', subject=subject, title=title, error='Post has no title')
+        else:
+            self.render('edit_post.html', subject=subject, title=title, error = 'Post has no content')
+
+class DeletePost(LoginRequired):
+    def get(self, url_string):
+        post = self.get_from_url(url_string)
+        if not post:
+            self.error(404)
+            return
+        elif not post.author == self.user.username:
+                self.redirect('/blog/myposts')
+        else:
+            self.render('delete_post.html', post=post)
+
+    def post(self, url_string):
+        post = self.get_from_url(url_string)
+        post.key.delete()
+        time.sleep(.5)
+        self.redirect('/blog/myposts')
+
+
+
 class PermLink(Handler):
-    def render_item(self, post_id):
-        key = db.Key.from_path('Post', int(post_id))
-        post = db.get(key)
+    def render_item(self, url_string):
+        post = self.get_from_url(url_string)
+        logging.info(post)
         if post:
             self.render("permanent_link.html", post=post)
         else:
@@ -261,7 +313,7 @@ class Login(CookieEnabled):
 
 class WelcomePage(LoginRequired):
     def get(self):
-        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
+        posts = Post.query().order(-Post.created).fetch(10)
         self.render('blog_main_page.html', posts=posts, msg='Welcome, %s!' % self.user.username)
 
 class NewPost(LoginRequired):
@@ -273,7 +325,7 @@ class NewPost(LoginRequired):
         content = self.request.get('content')
         if subject and content:
             p = Post(subject=subject, content=content, author=self.user.username)
-            p.put() #stores object in db
+            p.put()
             time.sleep(1)
             self.render_blog(msg='Successful post to NateBlog')
             #self.redirect("/blog/" + str(p.key().id()))
@@ -282,25 +334,21 @@ class NewPost(LoginRequired):
             self.render('new_post.html', subject=subject, content=content, error=error)
 
 class CommentPage(Handler):
-    def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id))
-        post = db.get(key)
+    def get(self, url_string):
+        post = self.get_from_url(url_string)
         if not post:
             self.error(404)
             return
         else:
-            q = db.Query(Comment)
-            comments = q.filter('post_id =', post_id)
-            comments = comments.order('-created').fetch(limit=20)
+            comments = Comment.query(ancestor=post.key).order(-Comment.created).fetch()#fetch all
             if len(comments) == 0:
                 comments = None
             self.render('view_comments.html', post=post, comments=comments)
 
 
 class PostComment(LoginRequired):
-    def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id))
-        post = db.get(key)
+    def get(self, url_string):
+        post = self.get_from_url(url_string)
         if not post:
             self.error(404)
             return
@@ -311,12 +359,14 @@ class PostComment(LoginRequired):
                 error = None
             self.render('post_comment.html', post=post, error=error)
 
-    def post(self, post_id):
+    def post(self, url_string):
+        post = self.get_from_url(url_string)
         content = self.request.get('content')
         if not content:
-            self.redirect('/blog/postcomment/%s?error=1' % post_id)
-        c = Comment(author=self.user.username, content=content, post_id=post_id)
+            self.redirect('/blog/postcomment/%s?error=1' % urlsafe(post.key))
+        c = Comment(author=self.user.username, content=content, parent=post.key)
         c.put()
+        post.num_comments += 1
         time.sleep(1)
         self.render_blog(msg='Comment Added')
 
@@ -327,6 +377,9 @@ app = webapp2.WSGIApplication([('/', RedirectToBlog),
                                 ('/blog/welcome', WelcomePage),
                                 ('/blog/newpost', NewPost),
                                 ('/blog/postsby', PostsBy),
-                                ('/blog/(\d+)', PermLink),
-                                ('/blog/comments/(\d+)', CommentPage),
-                                ('/blog/postcomment/(\d+)', PostComment)], debug=True)
+                                ('/blog/myposts', MyPosts),
+                                ('/blog/edit/([0-9a-zA-Z-]+)', EditPost),
+                                ('/blog/delete/([0-9a-zA-Z-]+)', DeletePost),
+                                ('/blog/([0-9a-zA-Z-]+)', PermLink),
+                                ('/blog/comments/([0-9a-zA-Z-]+)', CommentPage),
+                                ('/blog/postcomment/([0-9a-zA-Z-]+)', PostComment)], debug=True)

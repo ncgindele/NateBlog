@@ -12,8 +12,9 @@
         {% if post.num_comments > 0 %}
             <a href="/blog/comments/{{post.key.urlsafe()}}#comment" class="nav-link">View Comments</a>
         {% endif %}
-        <a href="/blog/postsby?p={{post.author}}" class="nav-link">All Posts by <b>{{post.author}}</b></a>
         <a href="/blog/postcomment/{{post.key.urlsafe()}}#comment" class="nav-link">Post Comment</a>
+        <a href="/blog/edit/{{post.key.urlsafe()}}" class="nav-link">Edit Post</a>
+        <a href="/blog/delete/{{post.key.urlsafe()}}" class ="nav-link">Delete</a>
     </div>
 </div>
 {% endblock %}
