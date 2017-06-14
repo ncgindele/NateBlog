@@ -1,17 +1,23 @@
 {% extends "base.html" %}
+{% block header %}
+    {{msg}}
+{% endblock %}
 {% block content %}
 <h2>edit_post</h2>
 <div class="full-width center">
     <form method=post>
         <label>Title</label>
-            <input class="create-post" type="text" name="subject" value="{{subject}}"></input>
+            <input class="create-post" type="text" name="subject" value="{{post.subject}}"></input>
         <label>Text</label>
-            <textarea class="create-post content-box" name="content">{{content}}</textarea>
+            <textarea class="create-post content-box" name="content">{{post.content}}</textarea>
         <div class="error">
             {{error}}
         </div>
         <div class="text-center">
-            <input type=submit />
+            <input type="submit" class="normal-submit dummy-nav" value="Save Edit"/>
+            <br>
+            <br>
+            <a href="/blog/delete/{{post.key.urlsafe()}}" class="normal-submit" />Delete Post</a>
         </div>
     </form>
 </div>

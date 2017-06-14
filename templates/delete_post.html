@@ -1,8 +1,0 @@
-{% extends "base.html" %}
-{% block content %}
-<h2>Are you sure you want to delete '<b>{{post.subject}}</b>'?</h2>
-<form method=post>
-    <input type=submit class="delete-button" value="Yes, rid it from the planet" />
-</form>
-<a href="/blog/myposts" class="nav-link">No, return to MyPosts</a>
-{% endblock %}

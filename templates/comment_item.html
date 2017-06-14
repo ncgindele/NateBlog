@@ -5,6 +5,9 @@
     </div>
     <div class="text-center">
         <h6 class="comment-heading">Posted by <b>{{comment.author}}</b> at {{comment.created.strftime("%I:%M %p %b %d, %Y")[1:]}}</h6>
+        {% if username == comment.author: %}
+            <a href="/blog/editcomment/{{comment.key.urlsafe()}}" class="little-edit edit-link nav-link">Edit</a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

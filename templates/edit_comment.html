@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>edit_comment</h2>
+<div class="full-width center">
+    <form method=post>
+        <label>Text</label>
+            <textarea class="create-post" name="content">{{comment.content}}</textarea>
+        <div class="error">
+            {{error}}
+        </div>
+        <div class="text-center">
+            <input type=submit class="normal-submit" value="Save Edit"/>
+            <br>
+            <br>
+            <a href="/blog/delete/{{comment.key.urlsafe()}}" class ="normal-submit">Delete</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

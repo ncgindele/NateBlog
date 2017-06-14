@@ -1,6 +1,16 @@
 {% extends "base.html" %}
+{% block header %}
+    {% if msg %}
+        {{msg}}
+    {% endif %}
+{% endblock %}
 {% block content %}
-    {{ post.render() | safe }}
+{% if logged_in: %}
+    {% include "logged_in_bar.html" %}
+{% else: %}
+    {% include "logged_out_bar.html" %}
+{% endif %}
+    {{ post.render(view_comments=True, username=username) | safe }}
     <br>
     <br> <a name="comment"></a>
     {% if not comments: %}
@@ -9,7 +19,7 @@
         </div>
     {% else: %}
         {% for comment in comments: %}
-            {{ comment.render() | safe }}
+            {{ comment.render(username=username) | safe }}
         {% endfor %}
     {% endif %}
 {% endblock %}

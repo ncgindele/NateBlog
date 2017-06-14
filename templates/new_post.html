@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>self.create_post()</h2>
+{% include "logged_in_bar.html" %}
+<h2>self.create_post</h2>
 <div class="full-width center">
     <form method=post>
         <label>Title</label>
@@ -12,7 +13,7 @@
             {{error}}
         </div>
         <div class="text-center">
-            <input type=submit />
+            <input type="submit" class="normal-submit" value="Submit"/>
         </div>
     </form>
 </div>

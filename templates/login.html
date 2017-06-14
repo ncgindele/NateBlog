@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% block header %}
+    {{msg}}
+{% endblock %}
 {% block content %}
     <h2>self.login()</h2>
     <form method="post">
@@ -30,7 +33,11 @@
                 </td>
         </table>
         <div class="text-center">
-            <input class="submit-button center" type="submit"/>
+            <input class="normal-submit center" type="submit" value="Submit"/>
+        </div>
+        <br>
+        <div class="text-center">
+            Don't have an account? <a href="/blog/signup" class="bare-link"><b>Create New Account</b></a>
         </div>
     </form>
 {% endblock %}

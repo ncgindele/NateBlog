@@ -7,13 +7,13 @@
     --shade4: #f1f1f1;
     --lightest: #f8f8f8;
     --accent1: #f93908;
-    --accent2: #0d47a1;
+    --accent2: #336600;
 }
 
 body {
     font-family: "Roboto Mono", monospace;
     max-width: 800px;
-    min-width: 360px;
+    min-width: 320px;
     margin: 0 auto 20px auto;
     background-color: var(--shade4);
 }
@@ -27,6 +27,7 @@ header {
 header > h1 {
     -webkit-transition: color 0.5s;
     transition: color 0.5s;
+    transition-delay: 0.01s;
 }
 header:hover {
     color: var(--accent1);
@@ -48,7 +49,7 @@ h2 {
     font-weight: normal;
     margin: 0.8em 0.5em 0.8em 0.5em;
     font-size: 1.85em;
-    padding: 0 .25em 0 .25em;
+    padding: 0.2em 0.25em 0.25em 0.2em;
     color: var(--darkest);
     word-wrap: break-word;
 }
@@ -97,6 +98,20 @@ textarea:focus {
     background-color: white;
 }
 
+.comment-heading {
+    display: inline-block;
+    margin-right: 16px;
+}
+
+.nav-link.edit-link:hover {
+    background-color: var(--accent1)
+}
+
+.nav-link.little-edit {
+    font-size: .7em;
+    margin-top: -6px;
+}
+
 .post-date {
     margin-top: 8px;
     margin-bottom: 16px;
@@ -116,28 +131,37 @@ textarea:focus {
     background-color: var(--shade3);
     padding: .1em .6em .1em .6em;
     display: inline-block;
+    font-size: 16px;
     -webkit-transition: background-color 0.5s;
     transition: background-color 0.5s;
 }
 
 .nav-link + .nav-link {
-    margin-left: 40px;
+    margin-left: 30px;
 }
 
 .nav-link:hover {
-    background-color: var(--accent1);
+    background-color: var(--accent2);
     color: var(--shade4);
 }
 
 .nav-link:focus {
-    background-color: var(--accent1);
+    background-color: var(--accent2);
     color: var(--shade4);
 }
 
-.upper-nav{
+.upper-nav {
     margin-left: 0;
     margin-top: 8px;
     padding: .1em .3em .1em .3em;
+}
+
+.upper-nav:hover {
+    background-color: var(--accent1);
+}
+
+.upper-nav:focus {
+    background-color: var(--accent1);
 }
 
 .block {
@@ -149,18 +173,58 @@ textarea:focus {
 
 .left-block {
     width: 20px;
-    margin-left: 70px;
     border-left: 2px solid var(--darkest);
+}
+
+.right-block {
+    width: 20px;
+    border-right: 2px solid var(--darkest);
 }
 
 .inner-block {
     width: 30px;
 }
 
+.nav-link.upvote-counter {
+    display: inline-block;
+    border-top: 1px Solid var(--shade1);
+    border-left: 1px Solid var(--shade1);
+    border-bottom: 1px Solid var(--shade1);
+    background-color: var(--shade4);
+    margin-right: 0;
+    text-align: right;
+}
+
+.nav-link.upvote-counter:hover {
+    background-color: var(--shade4);
+    color: var(--darkest);
+}
+
+.nav-link.upvote {
+    background-color: var(--shade1);
+    border: solid 1px var(--shade1);
+    color: var(--shade4);
+    margin: 0;
+    padding-bottom: 2px;
+    -webkit-transition: border 0.5s, background-color 0.5s;
+    transition: border 0.5s, background-color 0.5s;
+}
+
+.upvote:hover {
+    border: 1px solid var(--accent2);
+    background-color: var(--accent2);
+}
+
 .error {
     color: var(--accent1);
 }
-input[type=submit] {
+
+.bare-link {
+    color: var(--accent2);
+}
+
+
+.normal-submit {
     background-color: var(--shade1);
     color: var(--darkest);
     border: none;
@@ -171,7 +235,7 @@ input[type=submit] {
     font-family: "Roboto Mono", monospace;
 }
 
-input[type=submit]:hover {
+.normal-submit:hover {
     background-color: var(--accent1);
     color: var(--lightest);
     -webkit-transition: background-color 0.5s;
@@ -180,7 +244,7 @@ input[type=submit]:hover {
 
 .msg {
     float: right;
-    color: var(--shade1);
+    color: var(--shade0);
     padding: 2.5em 1em 0 .25em;
 }
 
@@ -189,7 +253,7 @@ input[type=submit]:hover {
 }
 
 .post:hover > div > h3 {
-    color: var(--accent2);
+    color: var(--darkest);
 }
 
 .post-content {
@@ -220,11 +284,61 @@ input[type=submit]:hover {
 
 .create-post {
     width: calc(100% - 20px);
+    height: 100px;
     margin: 0 8px;
-    font-size: 20px;
+    font-size: 16px;
 }
 
 .content-box {
     height : 400px;
     font-family: "EB Garamond", serif;
+}
+
+@media only screen and (max-width: 654px) and (min-width: 528px) {
+    h2 .delete-dialogue {
+        font-size: 1.4em;
+    }
+
+    .left-block,
+    .right-block {
+        display: none;
+    }
+
+    .inner-block {
+        width: 16px;
+    }
+}
+
+@media only screen and (max-width: 527px) {
+    h2 {
+        font-size: 1.7em;
+        font-weight: bold;
+    }
+
+    .delete-dialogue {
+        font-size: 1.3em;
+        font-weight: normal
+    }
+
+    .left-block,
+    .right-block {
+        display: none;
+    }
+
+    .inner-block {
+        width: 16px;
+        border: none;
+    }
+
+    .nav-link {
+        font-size: 14px;
+    }
+
+    .nav-link + .nav-link {
+        margin-left: 12px;
+    }
+
+    .nav-link.upvote {
+        margin-left: 0;
+    }
 }

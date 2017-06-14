@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>{{username}}.all_posts()</h2>
+{% include "logged_in_bar.html" %}
+    <h2>{{username}} my_posts()</h2>
     {% for post in posts %}
-        {{ post.my_render() | safe }}
+        {{ post.render(username=username) | safe }}
         <br>
     {% endfor %}
 {% endblock %}

@@ -10,10 +10,10 @@
     {% else: %}
         {% include "logged_out_bar.html" %}
     {% endif %}
-    <h2>posts > most_recent</h2>
+    <h2>posts > most_popular</h2>
         {% if posts: %}
             {% for post in posts %}
-                {{ post.render(username=username) | safe }}
+                {{ post.render() | safe }}
                 <br>
             {% endfor %}
         {% endif %}
