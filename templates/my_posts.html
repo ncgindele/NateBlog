@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% block title%} - MyPosts{% endblock %}
 {% block content %}
-{% include "logged_in_bar.html" %}
-    <h2>{{username}} my_posts()</h2>
+    {% include "logged_in_bar.html" %}
+    <h2>{{username}}: my_posts</h2>
     {% for post in posts %}
         {{ post.render(username=username) | safe }}
         <br>

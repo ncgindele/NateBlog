@@ -4,18 +4,19 @@ import string
 import hashlib
 import hmac
 import re
+import time
+
 import jinja2
 import webapp2
-import time
 from google.appengine.ext import ndb
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
-SHH_SECRET = 'foTz-6yr$1L.7~0FHcEW!b?6g2*CsJ'
 NOT_FOUND_URL = '/blog/pagenotfound'
-
+SHH_SECRET = 'foTz-6yr$1L.7~0FHcEW!b?6g2*CsJ'
+    # This string is used to make a secure password hash. Should not be public
 
 def make_salt():
     rand = ''
@@ -29,32 +30,41 @@ def make_pw_hash_s(username, password, salt=0):
     h = hashlib.sha256(username + password + salt).hexdigest()
     return '%s|%s' % (h, salt)
 
-class UpVote(ndb.Model):
-    post_id = ndb.IntegerProperty(required = True)
 
-class UserAccount(ndb.Model):
+#ndb Entities
+class MyEntity(ndb.Model):
+    def put_delay(self, delay=1):
+        # Initiates change to entity then waits to allow database to update
+        self.put()
+        time.sleep(1)
+
+
+class UserAccount(MyEntity):
+    """Stores account information for blog users. Usernames are unique to
+    UserAccounts and are case-insensitive."""
     username = ndb.StringProperty(required = True)
     pw_hash_s = ndb.StringProperty(required = True)
     email = ndb.StringProperty()
-
-    @classmethod
-    def by_id(cls, user_id):
-        #from 8.4
-        return UserAccount.get_by_id(user_id)
+        # Users do not need to provide an email address to create an account.
+        # Multiple UserAccounts can be created from the same email address.
 
     @classmethod
     def get_by_username(cls, username):
-        #from 8.4
-        u = UserAccount.query().filter(UserAccount.username == username).get()
+        # from Udacity lesson 8.4
+        u = cls.query().filter(cls.username == username).get()
         return u
 
     @classmethod
     def register(cls, username, password, email = None):
-        #from 8.4
+        # from Udacity lesson 8.4
         pw_hash_s = make_pw_hash_s(username, password)
-        return UserAccount(username=username, pw_hash_s=pw_hash_s, email=email)
+        return cls(username=username, pw_hash_s=pw_hash_s, email=email)
 
-class Post(ndb.Model):
+
+class Post(MyEntity):
+    """A Post stores data for a single blog entry. Posts can only be edited
+    or deleted by their own author.
+    """
     subject = ndb.StringProperty(required = True)
     content = ndb.TextProperty(required = True)
     created = ndb.DateTimeProperty(auto_now_add = True)
@@ -64,18 +74,23 @@ class Post(ndb.Model):
     num_upvotes = ndb.IntegerProperty(required = True, default = 0)
 
     def render(self, **params):
-        self._render_text = self.content.replace('\n', '<br>') #l6.2
+        self._render_text = self.content.replace('\n', '<br>')
         return self.render_str('blog_item.html', post = self, **params)
 
     def my_render(self):
         self._render_text = self.content.replace('\n', '<br>')
         return self.render_str('my_blog_item.html', post = self)
 
-    def render_str(self, template, **params):#from HW solutions
+    def render_str(self, template, **params):
         t = jinja_env.get_template(template)
         return t.render(params)
 
-class Comment(ndb.Model):
+
+class Comment(MyEntity):
+    """A Comment stores data for a single comment on a single post. When
+    initialized, Comments should be assigned a parent equal to their respective
+    post's key. Comments can only be edited or deleted by their own author.
+    """
     author = ndb.StringProperty(required = True)
     content = ndb.TextProperty(required = True)
     created = ndb.DateTimeProperty(auto_now_add = True)
@@ -89,7 +104,19 @@ class Comment(ndb.Model):
         t = jinja_env.get_template(template)
         return t.render(params)
 
+
+class UpVote(MyEntity):
+    """An Upvote is a relation between a Post and a user's UserAccount. User's
+    are not permitted to upvote their own posts or upvote the same post twice
+    (results in a withdrawl of the upvote).
+    """
+    post_id = ndb.IntegerProperty(required = True)
+    user_id = ndb.IntegerProperty()
+
+
+# Handlers
 class Handler(webapp2.RequestHandler):
+    # General methods
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
 
@@ -105,18 +132,18 @@ class Handler(webapp2.RequestHandler):
             key = ndb.Key(urlsafe=url_string)
             entity = key.get()
             return entity
-        except:
+        except:                  # When url does not provide a valid key
             return False
 
     def ensure_obj(self, obj, address=NOT_FOUND_URL):
-        #redirects to address if obj is NoneType
+        # redirects to 'address' if 'obj' is NoneType
         if not obj:
             self.redirect(address, permanent=True, abort=True)
         else:
             return obj
 
-    #Blog-specific methods
 
+    # Blog-specific methods
     def render_blog(self, popular=False, username=None, logged_in=False, msg=None, view_comments=False, post_comment=False):
         posts = Post.query().order(-Post.created).fetch(10)
         self.render("blog_main_page.html", posts=posts, username=username, logged_in=logged_in, msg=msg)
@@ -131,20 +158,21 @@ class PageNotFound(Handler):
         self.response.out.write('Error 404: The page you requested was not found')
 
 class CookieEnabled(Handler):
+    """Provides Handler with login-related methods, user-information"""
     def startup(self):
         user_id = self.verify_cookie()
         if user_id:
             logged_in = True
-            user = UserAccount.by_id(int(user_id))
+            user = UserAccount.get_by_id(int(user_id))
         else:
             logged_in = False
             user = None
         return (user, logged_in)
 
     def get_username(self, user):
-        try:
+        if isinstance(user, UserAccount):
             return user.username
-        except:
+        else:
             return ''
 
     def login(self, user):
@@ -152,7 +180,7 @@ class CookieEnabled(Handler):
 
     def logout(self):
         self.response.headers.add_header('Set-Cookie', 'user_creds=; Path=/')
-        self.redirect('/blog', permanent=True)
+        self.redirect('/blog/signup', permanent=True)
 
     def make_cookie(self, user):
         user_creds = self.make_val_hash(str(user.key.id()))
@@ -160,11 +188,11 @@ class CookieEnabled(Handler):
 
     def verify_cookie(self):
         val_hash = self.request.cookies.get('user_creds')
-        if not (val_hash and self.verify_val_hash(val_hash)):
+        if not (val_hash and self.verify_val_hash(val_hash)): # invalid cookie
             self.response.headers.add_header('Set-Cookie', 'user_creds=; Path=/')
             return False
         else:
-            return val_hash.split('|')[0]
+            return val_hash.split('|')[0] # hash of UserAccount id
 
     def make_val_hash(self, value):
         val_hash = '%s|%s' % (value, hmac.new(SHH_SECRET, value).hexdigest())
@@ -217,13 +245,12 @@ class LoginRequired(CookieEnabled):
     def startup(self):
         user_id = self.verify_cookie()
         if user_id:
-            return UserAccount.by_id(int(user_id))
+            return UserAccount.get_by_id(int(user_id))
         else:
             return None
 
 
-#Single Post Handlers
-
+# Single Post Handlers
 class PermLink(CookieEnabled):
     def get(self, url_string):
         post = self.ensure_obj(self.get_from_url(url_string))
@@ -242,84 +269,107 @@ class PermLink(CookieEnabled):
             return ''
 
 class CommentPage(CookieEnabled):
+    # Displays post with comments
     def get(self, url_string):
-        up_bool = self.request.get('p') #True if user wants to upvote
+        up_bool = self.request.get('p') # True if user wants to upvote
         val = self.startup()
         user, logged_in = val[0], val[1]
         post = self.ensure_obj(self.get_from_url(url_string))
         msg = self.get_msg(logged_in, user, post)
         username = self.get_username(user)
-        comments = Comment.query(ancestor=post.key).order(-Comment.created).fetch(100)
+        comments = Comment.query(ancestor=post.key).order(Comment.created).fetch(100)
         self.render('view_comments.html', post=post, comments=comments, username=username, msg=msg, logged_in=logged_in)
 
     def get_msg(self, logged_in, user, post):
-        msg = self.request.get('msg')
-        if msg == '1':
-            msg = 'Comment posted to NateBlog'
-        elif msg == '2':
-            msg = 'Comment successfully edited'
-        elif self.request.get('upvote'):
-            msg = self.request_upvote(user, post)
+        MSG_DICT = {'1': 'Comment posted to NateBlog',
+                    '2': 'Comment successfually edited',
+                    '3': 'Error: You must be logged in to upvote',
+                    '4': 'Error: You cannot upvote your own post',
+                    '5': 'You have rescinded your upvote',
+                    '6': 'You upvoted this post'}
+        if self.request.get('upvote'):
+            msg = self.process_upvote(user, post)
         else:
-            msg = ''
-        return msg
+            msg = self.request.get('msg')
+        if msg:
+            return MSG_DICT[msg]
+        else:
+            return ''
 
-    def request_upvote(self, user, post):
+    def process_upvote(self, user, post):
         if not user:
-            return 'Error: You must be logged in to upvote'
-        prev_upvote = UpVote.query(ancestor=user.key).filter(UpVote.post_id == post.key.id()).fetch()
-        if len(prev_upvote) > 0:
-            return 'Error: You have already upvoted this post'
-        elif user.username == post.author:
-            return 'Error: You cannot upvote your own post'
+            return '3'
+        if user.username == post.author:
+            return '4'
+        prev_upvote = UpVote.query(UpVote.user_id == user.key.id(),
+                                   UpVote.post_id == post.key.id()).get()
+        if prev_upvote:
+            self.downvote_post(user, post, prev_upvote)
         else:
-            upvote = UpVote(parent=user.key, post_id=post.key.id())
-            upvote.put()
-            post.num_upvotes += 1
-            post.put()
-            return 'You upvoted this post'
+            self.upvote_post(user, post)
+
+    def downvote_post(self, user, post, prev_upvote):
+        target_url = '/blog/comments/%s?msg=5' % post.key.urlsafe()
+        # URL target for redirect, prevents upvote change due to user refresh
+        prev_upvote.user_id = None
+        prev_upvote.key.delete()
+        prev_upvote.put()
+        post.num_upvotes -= 1
+        post.put_delay()
+        self.redirect(target_url, permanent=True, abort=True)
+
+    def upvote_post(self, user, post):
+        target_url = '/blog/comments/%s?msg=6' % post.key.urlsafe()
+        upvote = UpVote(user_id=user.key.id(), post_id=post.key.id())
+        upvote.put()
+        post.num_upvotes += 1
+        post.put_delay()
+        self.redirect(target_url, permanent=True, abort=True)
 
 
-#Multi-post Handlres
-
+#Multi-post Handlers
 class RedirectToBlog(Handler):
     def get(self):
         self.redirect('/blog', permanent=True)
 
 class BlogMainPage(CookieEnabled):
+    # Renders 10 most recent posts
     def get(self):
         user, logged_in = self.startup()
         username = self.get_username(user)
         self.render_blog(logged_in=logged_in, username=username)
 
 class Popular(CookieEnabled):
+    # Renders 10 most upvoted posts
     def get(self):
         user, logged_in = self.startup()
-        self.render_blog_popular(logged_in=logged_in, username=user.username)
+        username = self.get_username(user)
+        self.render_blog_popular(logged_in=logged_in, username=username)
 
 class PostsBy(CookieEnabled):
     def get(self):
         user = self.startup()[0]
+        username = self.get_username(user)
         author = self.request.get('p')
-        try:
-            if user.username == author:
-                self.redirect('/blog/myposts')
-        except: pass
-        posts = Post.query(Post.author == author).order(-Post.created).fetch(20)
+        if user.username == author:
+            self.redirect('/blog/myposts', permanent=True, abort=True)
+        posts = Post.query(Post.author == author).order(-Post.created).fetch(10)
         if len(posts) == 0:
-            self.render('blog_main_page.html', posts=posts, msg='No posts found for %s' % author)
+            self.render('blog_main_page.html', posts=posts,
+                        msg='No posts found for %s' % author)
         else:
             self.render('posts_by.html', posts=posts, author=author)
 
 class MyPosts(LoginRequired):
     def get(self):
-        user = self.ensure_obj(self.startup(), '/blog/login?action=view+MyPosts')
-        posts = Post.query(Post.author == user.username).order(-Post.created).fetch(10)
+        user = self.ensure_obj(self.startup(),
+                               '/blog/login?action=view+MyPosts')
+        q = Post.query(Post.author == user.username)
+        posts = q.order(-Post.created).fetch(10)
         self.render('my_posts.html', posts=posts, username=user.username)
 
 
 #Login Related Handlers
-
 class Signup(CookieEnabled):
     def get(self):
         self.render('signup.html')
@@ -331,14 +381,18 @@ class Signup(CookieEnabled):
         username = self.verify_username(self.request.get('username'))
         email = self.verify_email(self.request.get('email'))
         if type(username) is tuple:
-            self.render('signup.html', username='', password=password, verify=verify, email=email, u_error=username[1])
+            # Username error
+            self.render('signup.html', username='', password=password,
+                        verify=verify, email=email, u_error=username[1])
         elif not(verify and password and username and not (email is False)):
-            self.render('signup.html', username=username, password=password, verify=verify, email=email, u_error='')
+            # Other error (e.g. password is invalid, does not match other entry
+            self.render('signup.html', username=username, password=password,
+                        verify=verify, email=email, u_error='')
         else:
+            # Successful signup
             u = UserAccount.register(username, password, email)
-            u.put()
+            u.put_delay()
             self.login(u)
-            time.sleep(1)
             self.redirect('/blog/welcome', permanent=True)
 
 class Login(CookieEnabled):
@@ -357,7 +411,8 @@ class Login(CookieEnabled):
             self.login(user)
             self.redirect('/blog/welcome')
         else:
-            self.render('login.html', username='', password='', p_error='Invalid Login')
+            self.render('login.html', username='', password='',
+                        p_error='Invalid Login')
 
     def authenticate_credentials(self, username, password):
         user = UserAccount.get_by_username(username)
@@ -365,28 +420,32 @@ class Login(CookieEnabled):
             return False
         else:
             salt = user.pw_hash_s.split('|')[1]
-            if make_pw_hash_s(username=username, password=password, salt=salt) == user.pw_hash_s:
+            pw_hash_s = make_pw_hash_s(username=username, password=password, salt=salt)
+            if pw_hash_s == user.pw_hash_s:
                 return user
             else:
                 return False
 
 class Logout(CookieEnabled):
+    # Deletes 'user_creds' cookie
     def get(self):
         self.logout()
 
 class WelcomePage(LoginRequired):
     def get(self):
-        user = self.ensure_obj(self.startup(), '/blog')
+        user = self.ensure_obj(self.startup(), '/blog/signup')
         posts = Post.query().order(-Post.created).fetch(10)
-        self.render_blog('blog_main_page.html', logged_in=True, msg='Welcome, %s!' % user.username)
+        self.render_blog('blog_main_page.html', logged_in=True,
+                         msg='Welcome, %s!' % user.username)
 
 
 #Handlers for Creating, Editing, Deleting Entities
-
 class NewPost(LoginRequired):
+    #Create a new Post on the blog
     def get(self):
         user = self.ensure_obj(self.startup(), '/blog/login?action=post')
-        self.render('new_post.html', subject="", content="", error="", msg='Logged in as %s' % user.username)
+        self.render('new_post.html', subject="", content="", error="",
+                    msg='Logged in as %s' % user.username)
 
     def post(self):
         user = self.ensure_obj(self.startup(), '/blog/login?action=post')
@@ -394,12 +453,13 @@ class NewPost(LoginRequired):
         content = self.request.get('content')
         if subject and content:
             p = Post(subject=subject, content=content, author=user.username)
-            p.put()
-            time.sleep(1)
-            self.redirect('/blog/post/%s?msg=1' % p.key.urlsafe(), permanent=True)
+            p.put_delay()
+            self.redirect('/blog/post/%s?msg=1' % p.key.urlsafe(),
+                          permanent=True)
         else:
             error = "Must enter title and text"
-            self.render('new_post.html', subject=subject, content=content, error=error)
+            self.render('new_post.html', subject=subject, content=content,
+                        error=error)
 
 class EditPost(LoginRequired):
     def get(self, url_string):
@@ -413,13 +473,14 @@ class EditPost(LoginRequired):
         post.subject = self.request.get('subject')
         post.content = self.request.get('content')
         if post.subject and post.content:
-            post.put()
-            time.sleep(1)
+            post.put_delay()
             self.redirect('/blog/post/%s?msg=2' % post.key.urlsafe())
         elif not subject:
-            self.render('edit_post.html', subject=subject, content=content, error='Post has no title')
+            self.render('edit_post.html', subject=subject, content=content,
+                        error='Post has no title')
         else:
-            self.render('edit_post.html', subject=subject, content=content, error='Post has no content')
+            self.render('edit_post.html', subject=subject, content=content,
+                        error='Post has no content')
 
 class PostComment(LoginRequired):
     def get(self, url_string):
@@ -429,18 +490,19 @@ class PostComment(LoginRequired):
             error = 'Comment is empty'
         else:
             error = None
-        self.render('post_comment.html', post=post, post_comment=True, error=error)
+        self.render('post_comment.html', post=post, post_comment=True,
+                    error=error)
 
     def post(self, url_string):
         user = self.startup()
         post = self.get_from_url(url_string)
-        content = self.ensure_obj(self.request.get('content'), '/blog/postcomment/%s?error=1' % post.key.urlsafe())
+        redirect_target = '/blog/postcomment/%s?error=1' % post.key.urlsafe()
+        content = self.ensure_obj(self.request.get('content'), redirect_target)
         c = Comment(author=user.username, content=content, parent=post.key)
         c.put()
         post.num_comments += 1
-        post.put()
-        time.sleep(1)
-        self.redirect('/blog/comments/%s?msg=1#comment' % post.key.urlsafe(), permanent=True)
+        post.put_delay()
+        self.redirect('/blog/comments/%s?msg=1#comment' % post.key.urlsafe())
 
 class EditComment(LoginRequired):
     def get(self, url_string):
@@ -455,11 +517,13 @@ class EditComment(LoginRequired):
         comment = self.get_from_url(url_string)
         if content:
             comment.content = content
-            comment.put()
-            time.sleep(1)
-            self.redirect('/blog/comments/%s?msg=2#comment' % comment.key.parent().urlsafe())
+            comment.put_delay()
+            target = '/blog/comments/%s?msg=2#comment'
+            self.redirect(target % comment.key.parent().urlsafe())
         else:
-            self.render('edit_comment.html', content=comment.content, error="No content to comment", url_id=comment.key.urlsafe())
+            self.render('edit_comment.html', content=comment.content,
+                        error="No content to comment",
+                        url_id=comment.key.urlsafe())
 
 class DeleteItem(LoginRequired):
     def get(self, url_string):
@@ -468,18 +532,18 @@ class DeleteItem(LoginRequired):
         if not item.author == user.username:
                 self.redirect('/blog', permanent=True)
         else:
-            try:
+            if isinstance(item, Post):
                 self.render('delete_item.html', name=item.subject)
-            except:
+            else: # item is a Comment
                 self.render('delete_item.html', name='comment')
 
     def post(self, url_string):
         item = self.ensure_obj(self.get_from_url(url_string))
-        try:    #if item is a Comment
+        if isinstance(item, Comment):
             post = item.key.parent().get()
             post.num_comments = post.num_comments - 1
             post.put()
-        except: #if item is a Post
+        else: #item is a Post
             comments = Comment.query(ancestor=item.key).fetch()
             for comment in comments:
                 comment.key.delete()

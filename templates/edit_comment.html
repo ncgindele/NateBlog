@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% block title %} - Edit Comment{% endblock %}
 {% block content %}
 <h2>edit_comment</h2>
 <div class="full-width center">
     <form method=post>
         <label>Text</label>
-            <textarea class="create-post" name="content">{{comment.content}}</textarea>
+            <textarea class="create-post edit-comment" name="content">{{comment.content}}</textarea>
         <div class="error">
             {{error}}
         </div>
@@ -13,6 +14,9 @@
             <br>
             <br>
             <a href="/blog/delete/{{comment.key.urlsafe()}}" class ="normal-submit">Delete</a>
+            <br>
+            <br>
+            <a href="/blog/post/{{post.key.urlsafe()}}" class ="normal-submit">Return to Post</a>
         </div>
     </form>
 </div>

@@ -10,6 +10,11 @@
     --accent2: #336600;
 }
 
+.preload h1 {
+    -webkit-transition: none;
+    transition: none;
+}
+
 body {
     font-family: "Roboto Mono", monospace;
     max-width: 800px;
@@ -27,13 +32,12 @@ header {
 header > h1 {
     -webkit-transition: color 0.5s;
     transition: color 0.5s;
-    transition-delay: 0.01s;
 }
 header:hover {
     color: var(--accent1);
 }
 
-a{
+a {
     text-decoration: none;
     color: var(--darkest);
 }
@@ -76,6 +80,7 @@ label {
     padding: 8px 8px 4px 8px;
     display: block;
 }
+
 textarea {
     padding: .5em;
     margin: 4px 8px 0 8px;
@@ -104,7 +109,7 @@ textarea:focus {
 }
 
 .nav-link.edit-link:hover {
-    background-color: var(--accent1)
+    background-color: var(--accent1);
 }
 
 .nav-link.little-edit {
@@ -268,6 +273,7 @@ textarea:focus {
 .comment {
     max-width: 100%;
 }
+
 .comment-content {
     margin: 0 15% 0 15%;
     font-size: 16px;
@@ -284,14 +290,18 @@ textarea:focus {
 
 .create-post {
     width: calc(100% - 20px);
-    height: 100px;
     margin: 0 8px;
     font-size: 16px;
+}
+
+.edit-comment {
+    height: 100px;
 }
 
 .content-box {
     height : 400px;
     font-family: "EB Garamond", serif;
+    font-size: 20px;
 }
 
 @media only screen and (max-width: 654px) and (min-width: 528px) {

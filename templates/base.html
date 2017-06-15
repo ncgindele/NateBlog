@@ -6,11 +6,12 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>NateBlog{% block title%}{% endblock %}</title>
         <link href="https://fonts.googleapis.com/css?family=Roboto+Mono|EB+Garamond" rel="stylesheet">
+        <script>document.onload = function(){el = document.getElementsByClassName("preload"); el.classList.remove("preload");}</script>
     </head>
     <body>
         <a href="/blog" id="a-header">
         <header>
-            <h1>NateBlog</h1>
+            <h1 class="preload">NateBlog</h1>
             <div class="msg">
                 {% block header %}
                 {% endblock %}

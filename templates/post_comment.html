@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% block title %} - Post Comment{% endblock %}
 {% block content %}
-{% include "logged_in_bar.html" %}
+    {% include "logged_in_bar.html" %}
     <h2>comment.post_new</h2>
     {{ post.render(post_comment=True) | safe }}
     <div class="full-width center">
