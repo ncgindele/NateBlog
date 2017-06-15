@@ -7,7 +7,7 @@ Site with multi-user blog functionality for the 'Web Applications and Developmen
 ## Features
 
 ### Main Page
-    The main page displays the 10 most recent posts on the blog. Revisions to the post do not affect this ordering.  The grey header serves as a link to this page as does the 'Recent' tab in the navigation bar. An 'Edit' option is provided to posts that have been authored by the logged in user.
+    The main page displays the 10 most recent posts on the blog. Revisions to the post do not affect this ordering.  The grey header serves as a link to this page as does the 'Recent' tab in the navigation bar. An 'Edit' option is provided to posts that have been authored by the logged in user. Users are given a link to view comments only if there are comments to be viewed.
 
 ### Most Popular
     This page displays the 10 most upvoted posts on the blog. In all other regards it is like the Main Page.
